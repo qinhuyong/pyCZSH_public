@@ -1,0 +1,24 @@
+# Runtime and generated output
+__pycache__/
+*.py[cod]
+output_pyczsh/
+output_pyczsh_*/
+pyCSH_Zn/output_Y/
+log.lammps
+*.lammpstrj
+*.dump
+*.dcd
+*.xtc
+*.trr
+*.xyz
+*.raw.data
+*_minimized_static.data
+*_minimized_static.raw.data
+*_shell_relaxed_static.raw.data
+*_elastic_x_plus.raw.data
+*_elastic_x_minus.raw.data
+
+# Local/editor noise
+.DS_Store
+.vscode/
+.idea/
