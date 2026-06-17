@@ -1,13 +1,13 @@
 # Reproducibility Commands
 
-Recommended public version: `v2.1.1-public-polish`.
+Recommended public version: `v2.1.2-periodic-framework-recenter`.
 
 Run from the repository root.
 
 ## Syntax Checks
 
 ```bash
-python -m py_compile main_pyczsh.py pyCSH_Zn/workflow.py
+python -m py_compile main_pyczsh.py pyCSH_Zn/workflow.py pyCSH_Zn/periodic_recenter.py
 python -m py_compile pyCSH_Zn/examples/01_generate_pure_csh.py
 python -m py_compile pyCSH_Zn/examples/02_generate_q2b_zn.py
 python -m py_compile pyCSH_Zn/examples/08_generate_q1_zn.py
@@ -20,6 +20,7 @@ python -m py_compile pyCSH_Zn/examples/19_generate_composition_targeted_zn_csh.p
 python main_pyczsh.py --n-models 1 --target-ca-si 1.7 --target-w-si 0.2 --target-zn-si 0.05 --site-mode q1_q2b_single_structure_mixture --q1-q2b-ratio 0.5 --seed-start 20000 --output-dir output_pyczsh_smoke
 python main_pyczsh.py --n-models 1 --target-ca-si 1.7 --target-w-si 0.2 --target-zn-si 0.03 --site-mode q2b_only --seed-start 21000 --output-dir output_pyczsh_smoke_q2b
 python main_pyczsh.py --n-models 1 --target-ca-si 1.7 --target-w-si 0.2 --target-zn-si 0.06 --site-mode multi_q2b --seed-start 22000 --output-dir output_pyczsh_smoke_multi_q2b
+python main_pyczsh.py --n-models 1 --target-ca-si 1.7 --target-w-si 0.2 --target-zn-si 0.03 --site-mode q2b_only --seed-start 24000 --output-dir output_pyczsh_no_recenter --no-recenter
 ```
 
 If LAMMPS is available:
@@ -31,6 +32,20 @@ python main_pyczsh.py --n-models 1 --target-ca-si 1.7 --target-w-si 0.2 --target
 Do not run `--run-quasistatic` by default; it is an explicit diagnostic path.
 When enabled, it performs plus/minus small-strain x-direction diagnostic input
 checks only, not a full mechanics workflow.
+
+## Periodic Recentering Audit
+
+Default runs apply largest-gap-to-boundary periodic framework recentering before
+validation and final internal data export. The audit file records the applied
+fractional shift, largest gaps before and after, framework atom count,
+fractional spans, and warnings. This is a coordinate representation change
+only; it does not change chemistry, density, topology, `CS-Info`, force-field
+parameters, or validation semantics.
+
+OVITO atom-wise wrapping can still split connected frameworks if applied
+blindly, so use pyCZSH recentered data files for visualization and replicated
+cell inspection. The `--no-recenter` option is intended for debugging or
+comparison with the original coordinate representation.
 
 ## Site Mode Definitions
 
@@ -59,6 +74,8 @@ Each smoke output should include:
 - `manifest.json`
 - `composition_summary.csv`
 - `accepted_models.csv` or `rejected_models.csv`
+- `structures/model_000001/internal/periodic_recenter_summary.json`
 - `logs/run_summary.txt`
 
 The summary files report target and actual Ca/Si, Zn/Si, and Q1/Q2b allocation.
+They also record whether periodic framework recentering was applied.

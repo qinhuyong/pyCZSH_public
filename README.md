@@ -3,7 +3,7 @@
 pyCZSH constructs and validates pure and Zn-modified calcium silicate hydrate
 (C-S-H / C-Z-S-H) atomistic structures for CementFF4-Zn style LAMMPS workflows.
 
-Recommended public version: `v2.1.1-public-polish`.
+Recommended public version: `v2.1.2-periodic-framework-recenter`.
 
 The recommended executable file is:
 
@@ -48,6 +48,7 @@ working directory.
 - `--run-static-relaxation`
 - `--run-quasistatic`
 - `--export-clean-data`
+- `--no-recenter`
 - `--workers`
 
 Default behavior:
@@ -64,6 +65,7 @@ output_dir = output_pyczsh
 run_static_relaxation = false
 run_quasistatic = false
 export_clean_data = false
+periodic_recenter = true
 workers = 1
 ```
 
@@ -129,6 +131,25 @@ x-direction diagnostic input checks to verify the deformation-input path. These
 diagnostics are not used to report final elastic constants or production
 mechanical properties.
 
+## Periodic Framework Recentering
+
+pyCZSH defaults to largest-gap-to-boundary periodic framework recentering before
+writing the final internal `.data` file. This produces a more compact,
+visualization-friendly periodic representation by moving the largest empty
+framework gap to the cell boundary.
+
+This operation changes only the equivalent periodic coordinate representation.
+It does not change cell parameters, CementFF4-Zn force-field parameters, Zn
+motifs, atom IDs, atom types, charges, bonds, angles, `CS-Info`, or validation
+semantics. Validation is performed on the recentered internal data file.
+
+OVITO `Wrap at periodic boundaries` is atom-wise wrapping and can split a
+connected periodic C-S-H framework across the displayed box. For visualization
+and replicated-cell inspection, use the pyCZSH recentered data files. Use
+`--no-recenter` only for debugging or comparison with the original coordinate
+representation. If large voids remain after recentering, inspect box size,
+brick translation, and triclinic cell export.
+
 ## Site Modes
 
 - `q2b_only`: generates a single-Zn Q2b_Zn candidate.
@@ -156,6 +177,7 @@ output_pyczsh/
   coordination_quality_summary.csv
   representative_models.json
   structures/model_000001/internal/
+    periodic_recenter_summary.json
   structures/model_000001/lammps/
   structures/model_000001/postmin/
   logs/run_summary.txt

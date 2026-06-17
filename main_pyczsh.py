@@ -24,7 +24,7 @@ from workflow import (
 )
 
 
-VERSION = "v2.1.1-public-polish"
+VERSION = "v2.1.2-periodic-framework-recenter"
 
 
 class PyCZSHArgumentParser(argparse.ArgumentParser):
@@ -86,6 +86,14 @@ def build_parser():
         help="Run plus/minus small-strain x-direction diagnostic input checks; not final mechanics.",
     )
     parser.add_argument("--export-clean-data", action="store_true")
+    parser.add_argument(
+        "--no-recenter",
+        action="store_true",
+        help=(
+            "Disable default largest-gap-to-boundary periodic framework recentering. "
+            "By default, recentering is enabled for compact visualization-friendly cells."
+        ),
+    )
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--min-zn-zn-distance", type=float, default=5.0)
     parser.add_argument("--lammps-command", default="lammps")
@@ -132,6 +140,7 @@ def args_to_dict(args, output_dir):
         "run_static_relaxation": bool(args.run_static_relaxation),
         "run_quasistatic": bool(args.run_quasistatic),
         "export_clean_data": bool(args.export_clean_data),
+        "recenter": not bool(args.no_recenter),
         "min_zn_zn_distance": float(args.min_zn_zn_distance),
         "lammps_command": args.lammps_command,
     }
@@ -178,12 +187,16 @@ def main(argv=None):
         "run_static_relaxation": bool(args.run_static_relaxation),
         "run_quasistatic": bool(args.run_quasistatic),
         "export_clean_data": bool(args.export_clean_data),
+        "recenter_enabled": not bool(args.no_recenter),
+        "recenter_method": "largest_gap_to_boundary",
         "workers": int(args.workers),
         "notes": [
             "Target Ca/Si and Zn/Si are requested target-window values, not guaranteed exact final compositions.",
             "Internal data files retain CS-Info for validation and core-shell metadata.",
             "Clean data export is optional and is intended only for external reading or visualization convenience.",
             "LAMMPS static relaxation and small-strain x-direction diagnostic checks are opt-in.",
+            "Periodic framework recentering is enabled by default to move the largest framework gap to the cell boundary for visualization-friendly output.",
+            "OVITO atom-wise wrapping may still split connected periodic frameworks if applied blindly.",
         ],
     }
     write_json(os.path.join(output_dir, "manifest.json"), manifest)

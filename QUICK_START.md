@@ -1,6 +1,6 @@
 # Quick Start
 
-Recommended public version: `v2.1.1-public-polish`.
+Recommended public version: `v2.1.2-periodic-framework-recenter`.
 
 Run from the repository root.
 
@@ -18,6 +18,11 @@ python main_pyczsh.py
 
 The default output directory is `output_pyczsh/` relative to the current
 working directory.
+
+Periodic framework recentering is enabled by default. It moves the largest
+framework gap to the cell boundary for a compact visualization-friendly periodic
+representation. Use `--no-recenter` only for debugging or comparison with the
+original coordinates.
 
 ## Common Commands
 
@@ -66,6 +71,16 @@ python main_pyczsh.py --build-lammps-inputs --run-static-relaxation --run-quasis
 `--run-quasistatic` runs plus/minus small-strain x-direction diagnostic input
 checks only. It does not report final elastic constants or production
 mechanical properties.
+
+## Visualization Note
+
+OVITO `Wrap at periodic boundaries` wraps atoms independently and may split a
+connected C-S-H framework across the displayed box. The default pyCZSH
+recentered internal data files are recommended for visualization and replicated
+cell inspection. Recentering does not change cell parameters, force-field
+parameters, Zn motifs, atom IDs, atom types, bonds, angles, `CS-Info`, or
+validation semantics. If large voids remain, inspect box size, brick
+translation, and triclinic cell export.
 
 ## Site Mode Reminder
 

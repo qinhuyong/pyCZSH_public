@@ -41,6 +41,7 @@ try:
     from validate_cementff_data import validate
     from forcefields.build_cementff4_zn import build as build_forcefield
     from lammps_templates.build_inputs import build as build_lammps_inputs
+    from periodic_recenter import recenter_framework_largest_gap
 finally:
     os.chdir(_IMPORT_CWD)
 
@@ -103,6 +104,8 @@ SUMMARY_FIELDS = [
     "validation_json",
     "zinc_summary",
     "composition_summary",
+    "recenter_applied",
+    "recenter_summary_path",
     "lammps_dir",
     "postmin_raw_data_path",
     "postmin_internal_data_path",
@@ -299,6 +302,7 @@ def generate_structure(
     target_zn_count=None,
     q1_q2b_ratio=0.5,
     min_zn_zn_distance=5.0,
+    recenter=True,
 ):
     ensure_dir(internal_dir)
     np.random.seed(int(seed))
@@ -363,6 +367,9 @@ def generate_structure(
         zinc_summary["target_N_Q1_Zn"] = int(target_counts["N_Q1_target"])
         zinc_summary["target_N_Q2b_Zn"] = int(target_counts["N_Q2b_target"])
     entries, _, _ = check_move_water_hydrogens(entries)
+    entries, recenter_summary = recenter_framework_largest_gap(entries, supercell, enabled=bool(recenter))
+    recenter_file = os.path.join(internal_dir, "periodic_recenter_summary.json")
+    write_json(recenter_file, recenter_summary)
     data_file = os.path.join(internal_dir, model_id + ".data")
     water_summary = get_lammps_input_cementff(data_file, entries, bonds, angles, supercell, zinc_summary)
     mapping_file = os.path.join(internal_dir, model_id + "_cementff_mapping.json")
@@ -384,6 +391,8 @@ def generate_structure(
         "mapping_summary": mapping_file,
         "water_summary": water_file,
         "target_counts": target_counts,
+        "recenter_summary": recenter_file,
+        "recenter_applied": bool(recenter_summary.get("applied")),
     }
 
 
@@ -492,6 +501,7 @@ def run_one_model(args_dict):
             target_zn_count=args_dict.get("target_zn_count"),
             q1_q2b_ratio=args_dict["q1_q2b_ratio"],
             min_zn_zn_distance=args_dict["min_zn_zn_distance"],
+            recenter=args_dict.get("recenter", True),
         )
         validation = validate(generation["data_file"], expected_zinc_site_type=None, zinc_summary_path=generation.get("zinc_summary"))
         validation_file = os.path.join(internal_dir, model_id + "_validation.json")
@@ -569,6 +579,8 @@ def run_one_model(args_dict):
                 "validation_json": validation_file,
                 "zinc_summary": generation.get("zinc_summary"),
                 "composition_summary": generation["composition_summary"],
+                "recenter_applied": generation.get("recenter_applied"),
+                "recenter_summary_path": generation.get("recenter_summary"),
                 "lammps_dir": lammps_dir if lammps_outputs else None,
                 "postmin_raw_data_path": lammps_outputs.get("postmin_raw_data_path"),
                 "postmin_internal_data_path": lammps_outputs.get("postmin_internal_data_path"),
