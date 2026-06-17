@@ -24,7 +24,7 @@ from workflow import (
 )
 
 
-VERSION = "v2.1.2-periodic-framework-recenter"
+VERSION = "v2.1.3-cell-geometry-and-supercell-audit"
 
 
 class PyCZSHArgumentParser(argparse.ArgumentParser):
@@ -189,6 +189,7 @@ def main(argv=None):
         "export_clean_data": bool(args.export_clean_data),
         "recenter_enabled": not bool(args.no_recenter),
         "recenter_method": "largest_gap_to_boundary",
+        "cell_audit_enabled": True,
         "workers": int(args.workers),
         "notes": [
             "Target Ca/Si and Zn/Si are requested target-window values, not guaranteed exact final compositions.",
@@ -197,6 +198,8 @@ def main(argv=None):
             "LAMMPS static relaxation and small-strain x-direction diagnostic checks are opt-in.",
             "Periodic framework recentering is enabled by default to move the largest framework gap to the cell boundary for visualization-friendly output.",
             "OVITO atom-wise wrapping may still split connected periodic frameworks if applied blindly.",
+            "Cell geometry, framework occupancy, supercell population, and deduplication audits are written for each model.",
+            "If framework appears confined to a small box region after recentering, inspect cell_geometry_summary.json and framework_occupancy_summary.json before changing science settings.",
         ],
     }
     write_json(os.path.join(output_dir, "manifest.json"), manifest)

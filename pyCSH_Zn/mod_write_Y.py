@@ -508,6 +508,7 @@ def sanitize_cementff4_water(entries_crystal, entries_bonds, entries_angle, supe
 
 def get_lammps_input_cementff(name, entries_crystal, entries_bonds, entries_angle, supercell, zinc_summary=None, sanitize_water=True):
     """Write a CementFF4-oriented LAMMPS data file with fixed atom type IDs."""
+    water_sanitizer_report = None
     if sanitize_water:
         entries_crystal, water_sanitizer_report = sanitize_cementff4_water(
             entries_crystal, entries_bonds, entries_angle, supercell, zinc_summary

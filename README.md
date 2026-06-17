@@ -3,7 +3,7 @@
 pyCZSH constructs and validates pure and Zn-modified calcium silicate hydrate
 (C-S-H / C-Z-S-H) atomistic structures for CementFF4-Zn style LAMMPS workflows.
 
-Recommended public version: `v2.1.2-periodic-framework-recenter`.
+Recommended public version: `v2.1.3-cell-geometry-and-supercell-audit`.
 
 The recommended executable file is:
 
@@ -150,6 +150,28 @@ and replicated-cell inspection, use the pyCZSH recentered data files. Use
 representation. If large voids remain after recentering, inspect box size,
 brick translation, and triclinic cell export.
 
+## Cell Geometry And Supercell Audit
+
+v2.1.3 adds model-level audits for cases where the framework still appears to
+occupy only a small part of the displayed box after periodic recentering. Such
+images can indicate box-size problems, missing supercell translations,
+triclinic export or visualization interpretation issues, or erroneous atom
+dropping. They are not necessarily solved by atom-wise wrapping or recentering.
+
+Each model writes:
+
+- `framework_occupancy_summary.json`
+- `cell_geometry_summary.json`
+- `brick_placement_summary.json`
+- `dedup_audit_summary.json`
+
+The CSV summary records framework fractional spans, expected and actual brick
+counts, export consistency, and warning categories. When `--export-clean-data`
+is used, pyCZSH also writes a visualization-only
+`model_XXXX.visual_orthogonal.clean.data` file. This file is for OVITO
+diagnosis only; it does not preserve the original triclinic periodic cell and
+must not replace internal validation data.
+
 ## Site Modes
 
 - `q2b_only`: generates a single-Zn Q2b_Zn candidate.
@@ -178,6 +200,10 @@ output_pyczsh/
   representative_models.json
   structures/model_000001/internal/
     periodic_recenter_summary.json
+    framework_occupancy_summary.json
+    cell_geometry_summary.json
+    brick_placement_summary.json
+    dedup_audit_summary.json
   structures/model_000001/lammps/
   structures/model_000001/postmin/
   logs/run_summary.txt

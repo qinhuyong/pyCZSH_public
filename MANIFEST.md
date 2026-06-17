@@ -3,7 +3,7 @@
 This public package contains the runtime code and supporting data needed to run
 the pyCZSH workflow.
 
-Recommended public version: `v2.1.2-periodic-framework-recenter`.
+Recommended public version: `v2.1.3-cell-geometry-and-supercell-audit`.
 
 Included:
 
@@ -11,6 +11,8 @@ Included:
 - `pyCSH_Zn/workflow.py`: unified workflow functions.
 - `pyCSH_Zn/periodic_recenter.py`: largest-gap-to-boundary periodic framework
   recentering for compact visualization-friendly internal data files.
+- `pyCSH_Zn/cell_audit.py`: framework occupancy, cell geometry, supercell
+  population, triclinic export, and deduplication audit helpers.
 - Core pyCSH_Zn construction, Zn placement, validation, and writing modules.
 - `pyCSH_Zn/Blocks_Renamed_Y/`: brick resources required for construction.
 - `pyCSH_Zn/forcefields/CementFF4_Zn_parameters.json`: force-field database used by the writer.
@@ -34,3 +36,7 @@ Default model generation writes `internal/periodic_recenter_summary.json`.
 Recentering is a periodic coordinate representation change only and preserves
 cell parameters, topology, atom IDs, atom types, charges, bonds, angles,
 `CS-Info`, force-field parameters, and validation semantics.
+
+v2.1.3 also writes cell/supercell audit JSON files. These audits are intended to
+distinguish oversized cells, missing translations, triclinic export or
+visualization interpretation issues, and erroneous atom dropping.

@@ -42,6 +42,14 @@ try:
     from forcefields.build_cementff4_zn import build as build_forcefield
     from lammps_templates.build_inputs import build as build_lammps_inputs
     from periodic_recenter import recenter_framework_largest_gap
+    from cell_audit import (
+        audit_deduplication,
+        audit_supercell_population,
+        audit_triclinic_export_consistency,
+        classify_root_cause,
+        compact_orthogonal_visual_entries,
+        compute_framework_occupancy_summary,
+    )
 finally:
     os.chdir(_IMPORT_CWD)
 
@@ -106,6 +114,20 @@ SUMMARY_FIELDS = [
     "composition_summary",
     "recenter_applied",
     "recenter_summary_path",
+    "framework_occupancy_summary",
+    "cell_geometry_summary",
+    "brick_placement_summary",
+    "dedup_audit_summary",
+    "framework_frac_span_x",
+    "framework_frac_span_y",
+    "framework_frac_span_z",
+    "occupancy_warning",
+    "expected_brick_count",
+    "actual_brick_count",
+    "supercell_population_warning",
+    "export_consistency_passed",
+    "dedup_warning",
+    "cell_audit_root_cause_category",
     "lammps_dir",
     "postmin_raw_data_path",
     "postmin_internal_data_path",
@@ -303,6 +325,7 @@ def generate_structure(
     q1_q2b_ratio=0.5,
     min_zn_zn_distance=5.0,
     recenter=True,
+    visual_export_dir=None,
 ):
     ensure_dir(internal_dir)
     np.random.seed(int(seed))
@@ -323,6 +346,11 @@ def generate_structure(
     entries, bonds, crystal_dict, water_dict = get_full_coordinates(
         crystal_rs, water_in_crystal_rs, size, pieces, False, [0]
     )
+    stage_counts = {
+        "atom_count_after_full_coordinates": int(len(entries)),
+        "bond_count_after_full_coordinates": int(len(bonds)),
+    }
+    brick_summary = audit_supercell_population(crystal_rs, size)
     angles = get_angles(crystal_dict, water_dict, size)
     zinc_summary = None
     if contains_zinc:
@@ -366,10 +394,26 @@ def generate_structure(
         zinc_summary["target_q1_q2b_ratio"] = None if site_mode != "q1_q2b_single_structure_mixture" else float(q1_q2b_ratio)
         zinc_summary["target_N_Q1_Zn"] = int(target_counts["N_Q1_target"])
         zinc_summary["target_N_Q2b_Zn"] = int(target_counts["N_Q2b_target"])
+    stage_counts["atom_count_after_zinc"] = int(len(entries))
+    stage_counts["bond_count_after_zinc"] = int(len(bonds))
     entries, _, _ = check_move_water_hydrogens(entries)
+    stage_counts["atom_count_after_water_hydrogen_check"] = int(len(entries))
     entries, recenter_summary = recenter_framework_largest_gap(entries, supercell, enabled=bool(recenter))
+    stage_counts["atom_count_after_recenter"] = int(len(entries))
     recenter_file = os.path.join(internal_dir, "periodic_recenter_summary.json")
     write_json(recenter_file, recenter_summary)
+    occupancy_summary = compute_framework_occupancy_summary(entries, supercell, label="final_recentered", recenter_summary=recenter_summary)
+    cell_summary = audit_triclinic_export_consistency(supercell, cell_export=supercell, entries=entries)
+    dedup_summary = audit_deduplication(stage_counts)
+    root_cause_category = classify_root_cause(occupancy_summary, cell_summary, brick_summary, dedup_summary)
+    occupancy_file = os.path.join(internal_dir, "framework_occupancy_summary.json")
+    cell_file = os.path.join(internal_dir, "cell_geometry_summary.json")
+    brick_file = os.path.join(internal_dir, "brick_placement_summary.json")
+    dedup_file = os.path.join(internal_dir, "dedup_audit_summary.json")
+    write_json(occupancy_file, occupancy_summary)
+    write_json(cell_file, cell_summary)
+    write_json(brick_file, brick_summary)
+    write_json(dedup_file, dedup_summary)
     data_file = os.path.join(internal_dir, model_id + ".data")
     water_summary = get_lammps_input_cementff(data_file, entries, bonds, angles, supercell, zinc_summary)
     mapping_file = os.path.join(internal_dir, model_id + "_cementff_mapping.json")
@@ -384,6 +428,15 @@ def generate_structure(
     comp = composition_summary(data_file, target_ca_si, target_w_si, target_zn_si, target_counts, site_mode, seed, n_si)
     comp_file = os.path.join(internal_dir, model_id + "_composition_summary.json")
     write_json(comp_file, comp)
+    visual_clean_file = None
+    visual_summary_file = None
+    if visual_export_dir is not None:
+        ensure_dir(visual_export_dir)
+        visual_entries, visual_cell, visual_summary = compact_orthogonal_visual_entries(entries)
+        visual_clean_file = os.path.join(visual_export_dir, model_id + ".visual_orthogonal.clean.data")
+        write_clean_entries(visual_clean_file, visual_entries, bonds, angles, visual_cell)
+        visual_summary_file = os.path.join(visual_export_dir, model_id + "_visual_orthogonal_summary.json")
+        write_json(visual_summary_file, visual_summary)
     return {
         "data_file": data_file,
         "zinc_summary": zinc_file,
@@ -393,6 +446,24 @@ def generate_structure(
         "target_counts": target_counts,
         "recenter_summary": recenter_file,
         "recenter_applied": bool(recenter_summary.get("applied")),
+        "framework_occupancy_summary": occupancy_file,
+        "cell_geometry_summary": cell_file,
+        "brick_placement_summary": brick_file,
+        "dedup_audit_summary": dedup_file,
+        "cell_audit_root_cause_category": root_cause_category,
+        "visual_orthogonal_clean_data": visual_clean_file,
+        "visual_orthogonal_summary": visual_summary_file,
+        "audit_metrics": {
+            "framework_frac_span_x": occupancy_summary.get("frac_span_x"),
+            "framework_frac_span_y": occupancy_summary.get("frac_span_y"),
+            "framework_frac_span_z": occupancy_summary.get("frac_span_z"),
+            "occupancy_warning": occupancy_summary.get("occupancy_warning"),
+            "expected_brick_count": brick_summary.get("expected_brick_count"),
+            "actual_brick_count": brick_summary.get("actual_brick_count"),
+            "supercell_population_warning": brick_summary.get("supercell_population_warning"),
+            "export_consistency_passed": cell_summary.get("export_consistency_passed"),
+            "dedup_warning": dedup_summary.get("dedup_warning"),
+        },
     }
 
 
@@ -456,6 +527,11 @@ def export_clean_data(internal_data, clean_data):
         dst.writelines(out)
 
 
+def write_clean_entries(path, entries, bonds, angles, cell):
+    get_lammps_input_cementff(path, entries, bonds, angles, cell, zinc_summary=None, sanitize_water=False)
+    export_clean_data(path, path)
+
+
 def read_csinfo(data_file):
     from validate_cementff_data import parse_data
 
@@ -502,12 +578,14 @@ def run_one_model(args_dict):
             q1_q2b_ratio=args_dict["q1_q2b_ratio"],
             min_zn_zn_distance=args_dict["min_zn_zn_distance"],
             recenter=args_dict.get("recenter", True),
+            visual_export_dir=lammps_dir if args_dict.get("export_clean_data") else None,
         )
         validation = validate(generation["data_file"], expected_zinc_site_type=None, zinc_summary_path=generation.get("zinc_summary"))
         validation_file = os.path.join(internal_dir, model_id + "_validation.json")
         write_json(validation_file, validation)
         composition = read_json(generation["composition_summary"])
         q1, q2b, actual_ratio = actual_q1_q2b(generation.get("zinc_summary"))
+        audit_metrics = generation.get("audit_metrics", {})
         coords = coordination_values(validation)
         quality = coordination_quality(coords)
         validation_passed = validation.get("classification") in VALID_LABELS
@@ -521,6 +599,9 @@ def run_one_model(args_dict):
             clean_data = os.path.join(lammps_dir, model_id + ".clean.data")
             export_clean_data(generation["data_file"], clean_data)
             lammps_outputs["clean_data"] = clean_data
+            if generation.get("visual_orthogonal_clean_data"):
+                lammps_outputs["visual_orthogonal_clean_data"] = generation.get("visual_orthogonal_clean_data")
+                lammps_outputs["visual_orthogonal_summary"] = generation.get("visual_orthogonal_summary")
         if args_dict["run_static_relaxation"]:
             if not lammps_outputs:
                 raise ValueError("--run-static-relaxation requires LAMMPS inputs")
@@ -581,6 +662,20 @@ def run_one_model(args_dict):
                 "composition_summary": generation["composition_summary"],
                 "recenter_applied": generation.get("recenter_applied"),
                 "recenter_summary_path": generation.get("recenter_summary"),
+                "framework_occupancy_summary": generation.get("framework_occupancy_summary"),
+                "cell_geometry_summary": generation.get("cell_geometry_summary"),
+                "brick_placement_summary": generation.get("brick_placement_summary"),
+                "dedup_audit_summary": generation.get("dedup_audit_summary"),
+                "framework_frac_span_x": audit_metrics.get("framework_frac_span_x"),
+                "framework_frac_span_y": audit_metrics.get("framework_frac_span_y"),
+                "framework_frac_span_z": audit_metrics.get("framework_frac_span_z"),
+                "occupancy_warning": audit_metrics.get("occupancy_warning"),
+                "expected_brick_count": audit_metrics.get("expected_brick_count"),
+                "actual_brick_count": audit_metrics.get("actual_brick_count"),
+                "supercell_population_warning": audit_metrics.get("supercell_population_warning"),
+                "export_consistency_passed": audit_metrics.get("export_consistency_passed"),
+                "dedup_warning": audit_metrics.get("dedup_warning"),
+                "cell_audit_root_cause_category": generation.get("cell_audit_root_cause_category"),
                 "lammps_dir": lammps_dir if lammps_outputs else None,
                 "postmin_raw_data_path": lammps_outputs.get("postmin_raw_data_path"),
                 "postmin_internal_data_path": lammps_outputs.get("postmin_internal_data_path"),

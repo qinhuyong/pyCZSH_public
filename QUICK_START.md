@@ -1,6 +1,6 @@
 # Quick Start
 
-Recommended public version: `v2.1.2-periodic-framework-recenter`.
+Recommended public version: `v2.1.3-cell-geometry-and-supercell-audit`.
 
 Run from the repository root.
 
@@ -81,6 +81,16 @@ cell inspection. Recentering does not change cell parameters, force-field
 parameters, Zn motifs, atom IDs, atom types, bonds, angles, `CS-Info`, or
 validation semantics. If large voids remain, inspect box size, brick
 translation, and triclinic cell export.
+
+## Cell Audit Outputs
+
+If a recentered model still appears to occupy only a small part of the displayed
+box, inspect `framework_occupancy_summary.json` and
+`cell_geometry_summary.json`. v2.1.3 also writes
+`brick_placement_summary.json` and `dedup_audit_summary.json` for each model.
+With `--export-clean-data`, pyCZSH writes
+`model_XXXX.visual_orthogonal.clean.data` as an OVITO-only diagnostic export.
+Do not use that visual-only file for validation or LAMMPS relaxation.
 
 ## Site Mode Reminder
 

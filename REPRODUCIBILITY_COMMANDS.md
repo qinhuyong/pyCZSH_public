@@ -1,13 +1,13 @@
 # Reproducibility Commands
 
-Recommended public version: `v2.1.2-periodic-framework-recenter`.
+Recommended public version: `v2.1.3-cell-geometry-and-supercell-audit`.
 
 Run from the repository root.
 
 ## Syntax Checks
 
 ```bash
-python -m py_compile main_pyczsh.py pyCSH_Zn/workflow.py pyCSH_Zn/periodic_recenter.py
+python -m py_compile main_pyczsh.py pyCSH_Zn/workflow.py pyCSH_Zn/periodic_recenter.py pyCSH_Zn/cell_audit.py
 python -m py_compile pyCSH_Zn/examples/01_generate_pure_csh.py
 python -m py_compile pyCSH_Zn/examples/02_generate_q2b_zn.py
 python -m py_compile pyCSH_Zn/examples/08_generate_q1_zn.py
@@ -79,3 +79,13 @@ Each smoke output should include:
 
 The summary files report target and actual Ca/Si, Zn/Si, and Q1/Q2b allocation.
 They also record whether periodic framework recentering was applied.
+
+v2.1.3 outputs should also include:
+
+- `structures/model_000001/internal/framework_occupancy_summary.json`
+- `structures/model_000001/internal/cell_geometry_summary.json`
+- `structures/model_000001/internal/brick_placement_summary.json`
+- `structures/model_000001/internal/dedup_audit_summary.json`
+
+If `--export-clean-data` is enabled, the LAMMPS folder may also include
+`model_000001.visual_orthogonal.clean.data`, which is visualization-only.
