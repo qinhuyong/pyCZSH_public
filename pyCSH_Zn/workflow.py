@@ -104,6 +104,11 @@ SUMMARY_FIELDS = [
     "zinc_summary",
     "composition_summary",
     "lammps_dir",
+    "postmin_raw_data_path",
+    "postmin_internal_data_path",
+    "postmin_validation_path",
+    "postmin_validation_label",
+    "postmin_validation_passed",
 ]
 
 
@@ -442,6 +447,24 @@ def export_clean_data(internal_data, clean_data):
         dst.writelines(out)
 
 
+def read_csinfo(data_file):
+    from validate_cementff_data import parse_data
+
+    return parse_data(data_file)["csinfo"]
+
+
+def append_csinfo(reference_data, raw_data, output_data):
+    csinfo = read_csinfo(reference_data)
+    with open(raw_data) as f:
+        text = f.read().rstrip()
+    with open(output_data, "w") as f:
+        f.write(text)
+        f.write("\n\nCS-Info\n\n")
+        for atom_id in sorted(csinfo):
+            f.write("{:8d} {:8d}\n".format(atom_id, csinfo[atom_id]))
+    return output_data
+
+
 def run_lammps_input(lammps_command, input_file, run_dir, log_name):
     cmd = [lammps_command, "-in", os.path.basename(input_file), "-log", log_name]
     result = subprocess.call(cmd, cwd=run_dir)
@@ -494,8 +517,34 @@ def run_one_model(args_dict):
             ensure_dir(postmin_dir)
             run_lammps_input(args_dict["lammps_command"], lammps_outputs["minimize_static"], lammps_dir, "log.minimize_static")
             raw_postmin = os.path.join(lammps_dir, model_id + "_minimized_static.raw.data")
+            postmin_raw_data_path = None
+            postmin_internal_data_path = None
+            postmin_validation_path = None
+            postmin_validation_label = None
+            postmin_validation_passed = False
             if os.path.exists(raw_postmin):
-                shutil.copy2(raw_postmin, os.path.join(postmin_dir, model_id + "_minimized_static.data"))
+                postmin_raw_data_path = os.path.join(postmin_dir, model_id + "_minimized_static.raw.data")
+                shutil.copy2(raw_postmin, postmin_raw_data_path)
+                postmin_internal_data_path = os.path.join(postmin_dir, model_id + "_postmin_internal.data")
+                append_csinfo(generation["data_file"], postmin_raw_data_path, postmin_internal_data_path)
+                postmin_validation = validate(
+                    postmin_internal_data_path,
+                    expected_zinc_site_type=None,
+                    zinc_summary_path=generation.get("zinc_summary"),
+                )
+                postmin_validation_path = os.path.join(postmin_dir, model_id + "_postmin_validation.json")
+                write_json(postmin_validation_path, postmin_validation)
+                postmin_validation_label = postmin_validation.get("classification")
+                postmin_validation_passed = postmin_validation_label in VALID_LABELS
+                lammps_outputs.update(
+                    {
+                        "postmin_raw_data_path": postmin_raw_data_path,
+                        "postmin_internal_data_path": postmin_internal_data_path,
+                        "postmin_validation_path": postmin_validation_path,
+                        "postmin_validation_label": postmin_validation_label,
+                        "postmin_validation_passed": postmin_validation_passed,
+                    }
+                )
         if args_dict["run_quasistatic"]:
             if not args_dict["run_static_relaxation"]:
                 raise ValueError("--run-quasistatic requires --run-static-relaxation")
@@ -521,6 +570,11 @@ def run_one_model(args_dict):
                 "zinc_summary": generation.get("zinc_summary"),
                 "composition_summary": generation["composition_summary"],
                 "lammps_dir": lammps_dir if lammps_outputs else None,
+                "postmin_raw_data_path": lammps_outputs.get("postmin_raw_data_path"),
+                "postmin_internal_data_path": lammps_outputs.get("postmin_internal_data_path"),
+                "postmin_validation_path": lammps_outputs.get("postmin_validation_path"),
+                "postmin_validation_label": lammps_outputs.get("postmin_validation_label"),
+                "postmin_validation_passed": lammps_outputs.get("postmin_validation_passed"),
             }
         )
         write_json(os.path.join(model_dir, "model_manifest.json"), {"row": row, "generation": generation, "lammps_outputs": lammps_outputs})

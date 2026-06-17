@@ -3,6 +3,8 @@
 pyCZSH constructs and validates pure and Zn-modified calcium silicate hydrate
 (C-S-H / C-Z-S-H) atomistic structures for CementFF4-Zn style LAMMPS workflows.
 
+Recommended public version: `v2.1.1-public-polish`.
+
 The recommended executable file is:
 
 ```text
@@ -122,13 +124,22 @@ python3 main_pyczsh.py \
   --run-quasistatic
 ```
 
+The optional `--run-quasistatic` mode performs plus/minus small-strain
+x-direction diagnostic input checks to verify the deformation-input path. These
+diagnostics are not used to report final elastic constants or production
+mechanical properties.
+
 ## Site Modes
 
-- `q2b_only`: one Q2b_Zn candidate.
-- `q1_only`: one Q1_Zn candidate.
-- `multi_q2b`: multiple Q2b_Zn motifs in one C-S-H structure.
-- `multi_q1`: multiple Q1_Zn motifs in one C-S-H structure.
-- `q1_q2b_single_structure_mixture`: Q1_Zn and Q2b_Zn motifs in the same structure.
+- `q2b_only`: generates a single-Zn Q2b_Zn candidate.
+- `q1_only`: generates a single-Zn Q1_Zn candidate.
+- `multi_q2b`: generates a single C-S-H structure containing multiple Q2b_Zn motifs.
+- `multi_q1`: generates a single C-S-H structure containing multiple Q1_Zn motifs.
+- `q1_q2b_single_structure_mixture`: generates a single C-S-H structure containing both Q1_Zn and Q2b_Zn motifs.
+
+If multiple Zn motifs are required in the same structure, use `multi_q1`,
+`multi_q2b`, or `q1_q2b_single_structure_mixture`, not `q1_only` or
+`q2b_only`.
 
 ## Output Layout
 
@@ -154,15 +165,35 @@ Internal `.data` files retain `CS-Info` for validation and core-shell metadata.
 Optional `.clean.data` files are written only with `--export-clean-data` and are
 for external reading or visualization convenience.
 
+## CS-Info
+
+Internal pyCZSH `.data` files may contain a custom `CS-Info` section. `CS-Info`
+is used by the validator to retain core-shell pairing metadata. Generated
+LAMMPS input files read it with:
+
+```lammps
+fix csinfo all property/atom i_CSID
+read_data DATAFILE fix csinfo NULL CS-Info
+```
+
+External visualization tools may not understand `CS-Info`. Use clean export
+files (`.clean.data`) only for external reading or visualization convenience.
+Clean files should not replace internal validation files.
+
+When `--run-static-relaxation` is used, LAMMPS raw `write_data` output is kept,
+then `CS-Info` is reattached into a post-min internal data file for pyCZSH
+validation. The post-min validation JSON is written in the model `postmin/`
+directory.
+
 ## Scope And Limits
 
 This package does not modify CementFF4-Zn force-field parameters. It preserves
 the existing validation semantics, including the 2.5 A Zn-O coordination gate.
 
-The workflow is for construction, validation, screening, and opt-in
-quasi-static diagnostic infrastructure. It does not provide finite-temperature
-MD, `md_ready_candidate` labels, final elastic constants, or production
-mechanical properties.
+The workflow is for construction, validation, screening, and opt-in small-strain
+x-direction diagnostic input checks. It does not provide finite-temperature MD,
+`md_ready_candidate` labels, final elastic constants, or production mechanical
+properties.
 
 Target Ca/Si and Zn/Si are target-window values, not guaranteed exact final
 compositions. Actual Ca/Si, Zn/Si, and Q1/Q2b allocation are reported in the

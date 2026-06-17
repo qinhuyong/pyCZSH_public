@@ -68,8 +68,8 @@ def build(data_file, ff_file, out_dir, prefix="static"):
 
     outputs["elastic_x_plus"] = os.path.join(out_dir, "in.elastic_x_plus")
     write(outputs["elastic_x_plus"], header(data_file, ff_file, out_dir) + [
-        "# Quasi-static x-direction positive small-strain smoke test.",
-        "# This validates the input path only; it is not a full elastic constants calculation.",
+        "# Small-strain x-direction positive diagnostic input check.",
+        "# This validates the deformation-input path only; it is not a full mechanics workflow.",
         "variable strain equal 0.001",
         "variable sx equal 1.0+${strain}",
         "change_box all x scale ${sx} remap",
@@ -81,8 +81,8 @@ def build(data_file, ff_file, out_dir, prefix="static"):
 
     outputs["elastic_x_minus"] = os.path.join(out_dir, "in.elastic_x_minus")
     write(outputs["elastic_x_minus"], header(data_file, ff_file, out_dir) + [
-        "# Quasi-static x-direction negative small-strain smoke test.",
-        "# This validates the input path only; it is not a full elastic constants calculation.",
+        "# Small-strain x-direction negative diagnostic input check.",
+        "# This validates the deformation-input path only; it is not a full mechanics workflow.",
         "variable strain equal 0.001",
         "variable sx equal 1.0-${strain}",
         "change_box all x scale ${sx} remap",

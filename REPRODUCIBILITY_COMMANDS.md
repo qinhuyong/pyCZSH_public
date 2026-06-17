@@ -1,5 +1,7 @@
 # Reproducibility Commands
 
+Recommended public version: `v2.1.1-public-polish`.
+
 Run from the repository root.
 
 ## Syntax Checks
@@ -27,6 +29,25 @@ python main_pyczsh.py --n-models 1 --target-ca-si 1.7 --target-w-si 0.2 --target
 ```
 
 Do not run `--run-quasistatic` by default; it is an explicit diagnostic path.
+When enabled, it performs plus/minus small-strain x-direction diagnostic input
+checks only, not a full mechanics workflow.
+
+## Site Mode Definitions
+
+- `q2b_only` generates a single-Zn Q2b_Zn candidate.
+- `q1_only` generates a single-Zn Q1_Zn candidate.
+- `multi_q2b` generates a single C-S-H structure containing multiple Q2b_Zn motifs.
+- `multi_q1` generates a single C-S-H structure containing multiple Q1_Zn motifs.
+- `q1_q2b_single_structure_mixture` generates a single C-S-H structure containing both Q1_Zn and Q2b_Zn motifs.
+
+If multiple Zn motifs are required in the same structure, use `multi_q1`,
+`multi_q2b`, or `q1_q2b_single_structure_mixture`, not `q1_only` or
+`q2b_only`.
+
+Internal pyCZSH `.data` files may contain `CS-Info`, which is read by generated
+LAMMPS inputs via `fix csinfo all property/atom i_CSID` and
+`read_data DATAFILE fix csinfo NULL CS-Info`. Use `.clean.data` only for
+external reading or visualization convenience.
 
 ## Expected Output
 

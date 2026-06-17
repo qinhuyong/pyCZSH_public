@@ -3,6 +3,8 @@
 This public package contains the runtime code and supporting data needed to run
 the pyCZSH workflow.
 
+Recommended public version: `v2.1.1-public-polish`.
+
 Included:
 
 - `main_pyczsh.py`: recommended executable entry point.

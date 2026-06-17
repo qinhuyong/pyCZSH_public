@@ -24,24 +24,54 @@ from workflow import (
 )
 
 
-VERSION = "v2.1"
+VERSION = "v2.1.1-public-polish"
+
+
+class PyCZSHArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        if "not allowed with argument" in message and "--target-zn" in message:
+            message = message + "; --target-zn-si and --target-zn-count are mutually exclusive"
+        super(PyCZSHArgumentParser, self).error(message)
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(
-        description="Generate and validate pure or Zn-modified C-S-H structures with a unified pyCZSH workflow."
+    parser = PyCZSHArgumentParser(
+        description=(
+            "pyCZSH {}. Generate and validate pure or Zn-modified C-S-H structures "
+            "with a unified pyCZSH workflow."
+        ).format(VERSION)
     )
+    parser.add_argument("--version", action="version", version="pyCZSH {}".format(VERSION))
     parser.add_argument("--target-ca-si", type=float, default=1.7)
     parser.add_argument("--target-w-si", type=float, default=0.2)
-    parser.add_argument("--target-zn-si", type=float, default=0.05)
-    parser.add_argument("--target-zn-count", type=int, default=None)
+    zn_group = parser.add_mutually_exclusive_group()
+    zn_group.add_argument(
+        "--target-zn-si",
+        type=float,
+        default=None,
+        help="Target Zn/Si ratio. Defaults to 0.05 when neither Zn option is provided.",
+    )
+    zn_group.add_argument(
+        "--target-zn-count",
+        type=int,
+        default=None,
+        help="Target Zn atom count. Mutually exclusive with --target-zn-si.",
+    )
     parser.add_argument(
         "--q1-q2b-ratio",
         type=float,
         default=0.5,
         help="Target fraction N_Q1_Zn / N_Zn_total for q1_q2b_single_structure_mixture.",
     )
-    parser.add_argument("--site-mode", choices=sorted(SITE_MODE_TO_INTERNAL), default="q1_q2b_single_structure_mixture")
+    parser.add_argument(
+        "--site-mode",
+        choices=sorted(SITE_MODE_TO_INTERNAL),
+        default="q1_q2b_single_structure_mixture",
+        help=(
+            "Zn placement mode: q1_only/q2b_only are single-Zn modes; "
+            "multi_q1/multi_q2b/q1_q2b_single_structure_mixture place multiple motifs in one structure."
+        ),
+    )
     parser.add_argument("--n-models", type=int, default=1)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--seed-start", type=int, default=12000)
@@ -50,7 +80,11 @@ def build_parser():
     parser.add_argument("--build-lammps-inputs", action="store_true")
     parser.add_argument("--no-lammps", action="store_true", help="Compatibility no-op; LAMMPS is off unless explicitly requested.")
     parser.add_argument("--run-static-relaxation", action="store_true")
-    parser.add_argument("--run-quasistatic", action="store_true")
+    parser.add_argument(
+        "--run-quasistatic",
+        action="store_true",
+        help="Run plus/minus small-strain x-direction diagnostic input checks; not final mechanics.",
+    )
     parser.add_argument("--export-clean-data", action="store_true")
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--min-zn-zn-distance", type=float, default=5.0)
@@ -59,6 +93,8 @@ def build_parser():
 
 
 def validate_args(args):
+    if args.target_zn_si is None and args.target_zn_count is None:
+        args.target_zn_si = 0.05
     if args.q1_q2b_ratio < 0.0 or args.q1_q2b_ratio > 1.0:
         raise SystemExit("--q1-q2b-ratio must be between 0.0 and 1.0")
     if args.n_models < 1:
@@ -147,7 +183,7 @@ def main(argv=None):
             "Target Ca/Si and Zn/Si are requested target-window values, not guaranteed exact final compositions.",
             "Internal data files retain CS-Info for validation and core-shell metadata.",
             "Clean data export is optional and is intended only for external reading or visualization convenience.",
-            "LAMMPS static relaxation and quasi-static diagnostics are opt-in.",
+            "LAMMPS static relaxation and small-strain x-direction diagnostic checks are opt-in.",
         ],
     }
     write_json(os.path.join(output_dir, "manifest.json"), manifest)
